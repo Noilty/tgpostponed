@@ -1,5 +1,8 @@
-#!/usr/bin/php
 <?php
+
+declare(strict_types=1);
+
+#!/usr/bin/php
 
 /**
  * tgpostponed
@@ -7,24 +10,22 @@
  * cd \public $ php -f index.php
  */
 
-declare(strict_types=1);
-
 require '../vendor/autoload.php';
+require '../constants.php';
 
 use GuzzleHttp\Client;
 use Ramsey\Uuid\Uuid;
 
-define('FTP_HOST', '');
-define('FTP_DIR', FTP_HOST . '/');
-define('TG_CHANNEL', '');
-define('TG_CHANNEL_BOT', '');
-define('TG_CHANNEL_BOT_TOKEN', '');
+if ('cli' !== PHP_SAPI) {
+    // dd(php_sapi_name(), PHP_SAPI);
+    throw new Exception('tgpostponed - это консольное приложение.');
+}
 
 $client = new Client(['base_uri' => 'https://api.telegram.org/bot' . TG_CHANNEL_BOT_TOKEN . '/']);
 
 $folders = getData(FTP_DIR);
 
-for ($i = 0; $i < 13; $i++) {
+for ($postKey = 0; $postKey < POST_COUNT; $postKey++) {
     $randomFolder = getRandomElem($folders);
 
     $dirRandom = FTP_DIR . $randomFolder;
@@ -44,7 +45,7 @@ for ($i = 0; $i < 13; $i++) {
             'multipart' => prepareMultipart([
                 'chat_id' => TG_CHANNEL,
                 'photo' => fopen($imgPath, 'r'),
-                'caption' => "`" . strtoupper($uuid) . "`" . "\r\n🏷 #$randomFolder" . TG_CHANNEL,
+                'caption' => "`". strtoupper($uuid) . "`" . "\r\n🏷 #$randomFolder" . TG_CHANNEL,
                 'disable_notification' => true,
                 'parse_mode' => 'markdown',
             ]),
@@ -54,7 +55,7 @@ for ($i = 0; $i < 13; $i++) {
     }
 
     if (200 !== $statusCode = $res->getStatusCode()) {
-        throw new Exception("error: $statusCode");
+        throw new Exception("Ошибка: фото не было отправлено, статус код: $statusCode.");
     }
 
     if (! file_exists($imgPath)) {
@@ -68,10 +69,10 @@ for ($i = 0; $i < 13; $i++) {
     $from = $imgPath;
     $to = $dirPublished . '/' . $uuid . '.' . $imgExtension;
     // if (rename($from = $imgPath, $to = $dirPublished . '/' . $uuid . '.' . $imgExtension)) {    
-    echo "Файл успешно перемещен и переименован.\r\n$from\r\n$to" . PHP_EOL;
-    // continue;
+        echo "Файл успешно перемещен и переименован.\r\n$from\r\n$to" . PHP_EOL;
+        // continue;
     // }
-
+    
     // echo "Ошибка: не удалось переместить файл.";
     // return;
 
