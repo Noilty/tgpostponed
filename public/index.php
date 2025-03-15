@@ -1,6 +1,6 @@
 <?php
 
-declare (strict_types = 1);
+declare(strict_types=1);
 
 #!/usr/bin/php
 
@@ -8,11 +8,10 @@ declare (strict_types = 1);
  * tgpostponed
  * Это консольный PHP-скрипт, принимающий один аргумент.
  *
- * cd \public $ php -f index.php
+ * cd \public $ php -f index.php prod
  */
 
 if ('cli' !== PHP_SAPI) {
-    // dd(php_sapi_name(), PHP_SAPI);
     throw new Exception('Этот скрипт может быть запущен только из командной строки.');
 }
 
@@ -26,7 +25,10 @@ require '../vendor/autoload.php';
 require "../constants.$env.php";
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use Ramsey\Uuid\Uuid;
+use Symfony\Component\HttpFoundation\Response;
+use Psr\Http\Message\ResponseInterface;
 
 $client = new Client([
     'base_uri' => $baseUri = strReplaceAssoc([
@@ -36,7 +38,7 @@ $client = new Client([
 
 $folders = getData(FTP_DIR);
 
-for ($postKey = 0; $postKey < POST_COUNT; $postKey++) {
+while (true) {
     $randomFolder = getRandomElem($folders);
 
     $dirRandom = FTP_DIR . $randomFolder;
@@ -65,7 +67,36 @@ for ($postKey = 0; $postKey < POST_COUNT; $postKey++) {
                 'parse_mode' => 'markdown',
             ]),
         ]);
-    } catch (\Throwable $th) {
+    } catch (RequestException $e) {
+        /**
+         * @var ?ResponseInterface
+         */
+        $res = $e->getResponse();
+        /**
+         * @var string
+         */
+        $resBody = $res->getBody()->getContents();
+        /**
+         * @var array
+         */
+        $resData = json_decode($resBody, true);
+
+        /**
+         * @var array
+         */
+        $parameters = $resData['parameters'];
+        /**
+         * @var int
+         */
+        $retryAfter = $parameters['retry_after'];
+
+        if (! $resData['ok'] && $resData['error_code'] === Response::HTTP_TOO_MANY_REQUESTS) {
+            echo "start sleep($retryAfter)" . PHP_EOL;
+            sleep($retryAfter);
+        }
+
+        continue;
+    } catch (Throwable $th) {
         throw new Exception($th->getMessage());
     }
 
@@ -75,16 +106,15 @@ for ($postKey = 0; $postKey < POST_COUNT; $postKey++) {
 
     $from = $imgPath;
     $to = "$dirPublished/$imgUuid.$imgExtension";
-    if (rename($from, $to)) {
-        echo "|-- Файл успешно перемещен и переименован.\r\n|   |-- $from\r\n|   |-- $to" . PHP_EOL;
-        sleep(rand(0, 3));
-        continue;
+
+    if (! rename($from, $to)) {
+        throw new Exception('Ошибка: не удалось переместить файл.');
     }
 
-    throw new Exception('Ошибка: не удалось переместить файл.');
-}
+    echo "|-- Файл успешно перемещен и переименован.\r\n|   |-- $from\r\n|   |-- $to" . PHP_EOL;
 
-echo 'Скрипт успешно завершил свою работу.';
+    sleep(rand(0, 3));
+}
 
 # ----------------------------------------------------------------------------------------------------------------------
 
