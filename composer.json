@@ -1,0 +1,6 @@
+{
+    "require": {
+        "longman/telegram-bot": "^0.82.0",
+        "ramsey/uuid": "^4.7"
+    }
+}
