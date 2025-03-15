@@ -1,3 +1,4 @@
 /.vscode
 /vendor
-/constants.php
+/constants.dev.php
+/constants.prod.php
