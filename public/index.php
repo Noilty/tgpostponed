@@ -50,7 +50,7 @@ while (true) {
     $imgInfo = pathinfo($imgPath);
 
     if (! file_exists($imgPath)) {
-        throw new Exception('Ошибка: исходный файл не найден.');
+        throw new Exception("Ошибка: исходный файл ($imgPath) не найден.");
     }
 
     [$imgDirname, $imgBasename, $imgExtension, $imgFilename] = array_values($imgInfo);
@@ -101,7 +101,7 @@ while (true) {
     }
 
     if (200 !== $statusCode = $res->getStatusCode()) {
-        throw new Exception("Ошибка: фото не было отправлено, статус код: $statusCode.");
+        throw new Exception("Ошибка: фото ($imgPath) не было отправлено, статус код: $statusCode.");
     }
 
     $from = $imgPath;
@@ -126,8 +126,10 @@ while (true) {
  * как `.` (текущая директория), `..` (родительская директория) и `_from_sort`.
  *
  * @param string $dir Путь к директории, содержимое которой нужно получить.
+ * 
  * @return array Возвращает массив имен файлов, отфильтрованных от служебных элементов.
- * @throws \Exception Если директория недоступна или не существует.
+ * 
+ * @throws Exception Если директория недоступна или не существует.
  */
 function getData(string $dir): array
 {
@@ -148,8 +150,10 @@ function getData(string $dir): array
  * Эта функция принимает массив `$elems` и возвращает один случайный элемент из него.
  *
  * @param array $elems Массив строк, из которого выбирается случайный элемент.
+ * 
  * @return string Случайный элемент массива.
- * @throws \ValueError Если массив пуст (PHP выбросит ошибку при вызове array_rand).
+ * 
+ * @throws ValueError Если массив пуст (PHP выбросит ошибку при вызове array_rand).
  */
 function getRandomElem(array $elems): string
 {
@@ -164,6 +168,7 @@ function getRandomElem(array $elems): string
  * Такой формат обычно используется для отправки данных в multipart-запросах, например, при работе с библиотекой Guzzle.
  *
  * @param array $params Ассоциативный массив параметров (ключи — имена параметров, значения — их содержимое).
+ * 
  * @return array Возвращает массив в формате multipart (каждый элемент содержит `name` и `contents`).
  */
 function prepareMultipart(array $params): array
@@ -183,7 +188,8 @@ function prepareMultipart(array $params): array
  *
  * @param string $filename Строка, которую нужно проверить на соответствие формату UUID.
  * @return string Возвращает строку с действительным UUID (либо переданное значение, либо сгенерированный UUID).
- * @throws \Exception Если не удалось сгенерировать UUID.
+ * 
+ * @throws Exception Если не удалось сгенерировать UUID.
  */
 function prepareUuid(string $filename): string
 {
@@ -197,7 +203,8 @@ function prepareUuid(string $filename): string
  * создать уникальный идентификатор версии 4 (случайный).
  *
  * @return string Возвращает строковое представление UUID версии 4.
- * @throws \Exception Если не удалось сгенерировать UUID.
+ * 
+ * @throws Exception Если не удалось сгенерировать UUID.
  */
 function generateUuid(): string
 {
@@ -212,6 +219,7 @@ function generateUuid(): string
  *
  * @param array $replace Ассоциативный массив замен (ключи — что заменить, значения — на что заменить).
  * @param string $subject Строка, в которой будут выполнены замены.
+ * 
  * @return string Возвращает строку с выполненными заменами.
  */
 function strReplaceAssoc(array $replace, string $subject): string
@@ -227,6 +235,7 @@ function strReplaceAssoc(array $replace, string $subject): string
  *
  * @param array $array Исходный массив.
  * @param array $keys Массив ключей, которые нужно оставить в результирующем массиве.
+ * 
  * @return array Возвращает новый массив, содержащий только указанные ключи.
  */
 function arrayOnly(array $array, array $keys): array
@@ -241,6 +250,7 @@ function arrayOnly(array $array, array $keys): array
  * с использованием `var_export` и оборачивает в тег `<pre>` для красивого отображения в браузере.
  *
  * @param mixed ...$data Произвольные данные для вывода.
+ * 
  * @return void
  */
 function dump(...$data): void
@@ -255,6 +265,7 @@ function dump(...$data): void
  * Полезно для отладки.
  *
  * @param mixed ...$data Произвольные данные для вывода.
+ * 
  * @return void
  */
 function dd(...$data): void
