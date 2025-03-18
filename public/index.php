@@ -139,9 +139,7 @@ function getData(string $dir): array
 
     $data = scandir($dir, SCANDIR_SORT_DESCENDING);
 
-    return array_filter($data, function (string $file): bool {
-        return ! in_array($file, ['.', '..', '_from_sort']);
-    });
+    return array_filter($data, fn(string $file): bool  => ! in_array($file, ['.', '..', '_from_sort']));
 }
 
 /**
@@ -173,11 +171,10 @@ function getRandomElem(array $elems): string
  */
 function prepareMultipart(array $params): array
 {
-    return array_map(
-        fn($key, $value) => ['name' => $key, 'contents' => $value],
-        array_keys($params),
-        $params
-    );
+    return array_map(fn($key, $value) => [
+        'name' => $key,
+        'contents' => $value,
+    ], array_keys($params), $params);
 }
 
 /**
