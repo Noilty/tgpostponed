@@ -30,6 +30,9 @@ use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
 use Psr\Http\Message\ResponseInterface;
 
+const HTTP_OK = Response::HTTP_OK;
+const HTTP_TOO_MANY_REQUESTS = Response::HTTP_TOO_MANY_REQUESTS;
+
 $client = new Client([
     'base_uri' => $baseUri = strReplaceAssoc([
         ':token' => TG_CHANNEL_BOT_TOKEN,
@@ -45,7 +48,13 @@ while (true) {
     $dirPublished = "$dirRandom/published";
     $dirUnpublished = "$dirRandom/unpublished";
 
-    $imgName = getRandomElem(getData($dirUnpublished));
+    $listImg = getData($dirUnpublished);
+    if (empty($listImg)) {
+        echo writelnRed("|-- Директория пуста.\r\n|   |-- $dirUnpublished") . PHP_EOL;
+        continue;
+    }
+
+    $imgName = getRandomElem($listImg);
     $imgPath = "$dirUnpublished/$imgName";
     $imgInfo = pathinfo($imgPath);
 
@@ -82,6 +91,14 @@ while (true) {
         $resData = json_decode($resBody, true);
 
         /**
+         * @var bool
+         */
+        $status = $resData['ok'];
+        /**
+         * @var int
+         */
+        $statusCode = $resData['error_code'];
+        /**
          * @var array
          */
         $parameters = $resData['parameters'];
@@ -90,9 +107,11 @@ while (true) {
          */
         $retryAfter = $parameters['retry_after'];
 
-        if (! $resData['ok'] && $resData['error_code'] === Response::HTTP_TOO_MANY_REQUESTS) {
+        if (! $status && $statusCode === HTTP_TOO_MANY_REQUESTS) {
             echo "start sleep($retryAfter)" . PHP_EOL;
             sleep($retryAfter);
+        } else {
+            throw new Exception("статус код: $statusCode");
         }
 
         continue;
@@ -100,13 +119,15 @@ while (true) {
         throw new Exception($th->getMessage());
     }
 
-    if (200 !== $statusCode = $res->getStatusCode()) {
+    $statusCode = $res->getStatusCode();
+    if ($statusCode !== HTTP_OK) {
         throw new Exception("Ошибка: фото ($imgPath) не было отправлено, статус код: $statusCode.");
+    } else {
+        echo "|-- Файл успешно отправлен." . PHP_EOL;
     }
 
     $from = $imgPath;
     $to = "$dirPublished/$imgUuid.$imgExtension";
-
     if (! rename($from, $to)) {
         throw new Exception('Ошибка: не удалось переместить файл.');
     }
@@ -269,4 +290,37 @@ function dd(...$data): void
 {
     dump(...$data);
     die();
+}
+
+/**
+ * Выводит цветной текст в консоли с переносом строки
+ * 
+ * @param string $text Текст для вывода
+ * 
+ * @param string $color Цвет текста
+ * 
+ * @return string Возвращает строку с ANSI-кодами для цветного вывода
+ */
+function writeln(string $text, string $color = 'default'): string
+{
+    $colors = [
+        'black'   => '0;30',
+        'red'     => '0;31',
+        'green'   => '0;32',
+        'yellow'  => '0;33',
+        'blue'    => '0;34',
+        'magenta' => '0;35',
+        'cyan'    => '0;36',
+        'white'   => '0;37',
+        'default' => '0;39',
+    ];
+
+    $colorCode = $colors[$color] ?? $colors['default'];
+
+    return "\033[{$colorCode}m{$text}\033[0m";
+}
+
+function writelnRed(string $text): string
+{
+    return writeln($text, 'red');
 }
