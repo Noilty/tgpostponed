@@ -12,11 +12,11 @@ declare(strict_types=1);
  */
 
 if ('cli' !== PHP_SAPI) {
-    throw new Exception('Этот скрипт может быть запущен только из командной строки.');
+    throw new \Exception('Этот скрипт может быть запущен только из командной строки.');
 }
 
 if (2 !== $argv && ! in_array($env = $argv[1], $envs = ['dev', 'prod'])) {
-    throw new Exception('Использование: php -f index.php ' . implode('|', $envs));
+    throw new \Exception('Использование: php -f index.php ' . implode('|', $envs));
 }
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -56,12 +56,16 @@ while (true) {
 
     $imgName = getRandomElem($listImg);
     $imgPath = "$dirUnpublished/$imgName";
-    $imgInfo = pathinfo($imgPath);
 
     if (! file_exists($imgPath)) {
-        throw new Exception("Ошибка: исходный файл ($imgPath) не найден.");
+        throw new \Exception("Ошибка: исходный файл ($imgPath) не найден.");
+    }
+	
+    if (! $photoStream = fopen($imgPath, 'r')) {
+        throw new \Exception("Не удалось открыть файл: $imgPath.");
     }
 
+    $imgInfo = pathinfo($imgPath);
     [$imgDirname, $imgBasename, $imgExtension, $imgFilename] = array_values($imgInfo);
 
     $imgUuid = prepareUuid($imgFilename);
@@ -70,13 +74,13 @@ while (true) {
         $res = $client->post('sendPhoto', [
             'multipart' => prepareMultipart([
                 'chat_id' => TG_CHANNEL,
-                'photo' => fopen($imgPath, 'r'),
+                'photo' => $photoStream,
                 'caption' => "`" . strtoupper($imgUuid) . "`" . "\r\n🏷 #$randomFolder" . TG_CHANNEL,
                 'disable_notification' => true,
                 'parse_mode' => 'markdown',
             ]),
         ]);
-    } catch (RequestException $e) {
+    } catch (\Exception $e) {
         /**
          * @var ?ResponseInterface
          */
@@ -107,21 +111,20 @@ while (true) {
          */
         $retryAfter = $parameters['retry_after'];
 
-        if (! $status && $statusCode === HTTP_TOO_MANY_REQUESTS) {
+        if (HTTP_TOO_MANY_REQUESTS === $statusCode) {
             echo "start sleep($retryAfter)" . PHP_EOL;
+            
             sleep($retryAfter);
-        } else {
-            throw new Exception("статус код: $statusCode");
-        }
 
-        continue;
-    } catch (Throwable $th) {
-        throw new Exception($th->getMessage());
+            continue;
+        }
+        
+        throw new \Exception("статус код: $statusCode");
     }
 
     $statusCode = $res->getStatusCode();
     if ($statusCode !== HTTP_OK) {
-        throw new Exception("Ошибка: фото ($imgPath) не было отправлено, статус код: $statusCode.");
+        throw new \Exception("Ошибка: фото ($imgPath) не было отправлено, статус код: $statusCode.");
     } else {
         echo "|-- Файл успешно отправлен." . PHP_EOL;
     }
@@ -129,7 +132,7 @@ while (true) {
     $from = $imgPath;
     $to = "$dirPublished/$imgUuid.$imgExtension";
     if (! rename($from, $to)) {
-        throw new Exception('Ошибка: не удалось переместить файл.');
+        throw new \Exception('Ошибка: не удалось переместить файл.');
     }
 
     echo "|-- Файл успешно перемещен и переименован.\r\n|   |-- $from\r\n|   |-- $to" . PHP_EOL;
@@ -150,12 +153,12 @@ while (true) {
  * 
  * @return array Возвращает массив имен файлов, отфильтрованных от служебных элементов.
  * 
- * @throws Exception Если директория недоступна или не существует.
+ * @throws \Exception Если директория недоступна или не существует.
  */
 function getData(string $dir): array
 {
     if (! is_dir($dir)) {
-        throw new Exception('Путь недоступен.');
+        throw new \Exception('Путь недоступен.');
     }
 
     $data = scandir($dir, SCANDIR_SORT_DESCENDING);
@@ -207,7 +210,7 @@ function prepareMultipart(array $params): array
  * @param string $filename Строка, которую нужно проверить на соответствие формату UUID.
  * @return string Возвращает строку с действительным UUID (либо переданное значение, либо сгенерированный UUID).
  * 
- * @throws Exception Если не удалось сгенерировать UUID.
+ * @throws \Exception Если не удалось сгенерировать UUID.
  */
 function prepareUuid(string $filename): string
 {
@@ -222,7 +225,7 @@ function prepareUuid(string $filename): string
  *
  * @return string Возвращает строковое представление UUID версии 4.
  * 
- * @throws Exception Если не удалось сгенерировать UUID.
+ * @throws \Exception Если не удалось сгенерировать UUID.
  */
 function generateUuid(): string
 {
